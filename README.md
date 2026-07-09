@@ -13,6 +13,8 @@ Add a Markdown or MDX file under `content/posts/`.
 title: Your Post Title
 description: A short description for search engines and link previews.
 publishDate: 2026-07-09
+# Add or update this after editing an already published post.
+# updatedDate: 2026-07-10
 tags: ["convex", "production"]
 draft: false
 ---
@@ -23,6 +25,8 @@ Write the post here.
 The filename becomes the URL slug. For example, `content/posts/deploy-notes.md` publishes at `/posts/deploy-notes/`.
 
 Set `draft: true` to hide a post from production builds.
+
+After editing an already published post, add or update `updatedDate`. The post page will show `Last updated:` next to the publish date and reading time.
 
 ## Local Development
 

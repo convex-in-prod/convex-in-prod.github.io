@@ -23,6 +23,8 @@
 			"title: ${TM_FILENAME_BASE/(.*)/${1:/capitalize}/}",
 			"description: 'Short description for search engines and link previews.'",
 			"publishDate: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE",
+			"# Add or update this after editing an already published post.",
+			"# updatedDate: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE",
 			"tags: []",
 			"draft: false",
 			"---",
