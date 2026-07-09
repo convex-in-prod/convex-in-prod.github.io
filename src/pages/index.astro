@@ -1,0 +1,64 @@
+---
+import type { CollectionEntry } from "astro:content";
+import PostPreview from "@/components/blog/PostPreview.astro";
+import { getAllPosts } from "@/data/post";
+import PageLayout from "@/layouts/Base.astro";
+import { collectionDateSort } from "@/utils/date";
+
+// Posts
+const MAX_POSTS = 5;
+const allPosts = await getAllPosts();
+const allPostsByDate = allPosts.sort(collectionDateSort) as CollectionEntry<"post">[];
+const latestPosts = allPostsByDate.slice(0, MAX_POSTS);
+
+// Pinned Posts, set to a max of 3;
+const MAX_PINNED_POSTS = 3;
+const pinnedPosts = allPostsByDate
+	.values()
+	.filter((p) => p.data.pinned)
+	.take(MAX_PINNED_POSTS)
+	.toArray();
+---
+
+<PageLayout meta={{ title: "Home" }}>
+	<section>
+		<h1 class="title mb-12">Convex in Prod</h1>
+		<p class="mb-4">
+			Technical notes about running Convex-backed systems in production: design choices,
+			operational lessons, deployment details, and failure modes worth writing down.
+		</p>
+		<p>
+			<a class="cactus-link font-semibold" href="/posts/">Read the blog</a>
+		</p>
+	</section>
+	{
+		pinnedPosts.length > 0 && (
+			<section class="mt-16">
+				<h2 class="title mb-6 text-xl">Pinned Posts</h2>
+				<ul class="space-y-4" role="list">
+					{pinnedPosts.map((p) => (
+						<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+							<PostPreview post={p} />
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+	<section class="mt-16">
+		<h2 class="title text-accent mb-6 text-xl"><a href="/posts/">Latest Posts</a></h2>
+		{
+			latestPosts.length > 0 ? (
+				<ul class="space-y-4" role="list">
+					{latestPosts.map((p) => (
+						<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+							<PostPreview post={p} />
+						</li>
+					))}
+				</ul>
+			) : (
+				<p>No posts have been published yet.</p>
+			)
+		}
+	</section>
+</PageLayout>

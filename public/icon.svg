@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Convex in Prod">
+	<rect width="256" height="256" rx="40" fill="#1d1f21"/>
+	<path d="M128 28 218 80v96l-90 52-90-52V80l90-52Z" fill="none" stroke="#2bbc8a" stroke-width="18" stroke-linejoin="round"/>
+	<path d="M128 28v96m0 104V124M38 80l90 44 90-44" fill="none" stroke="#d482ab" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M85 164h86" stroke="#cdffb8" stroke-width="18" stroke-linecap="round"/>
+</svg>
