@@ -6,7 +6,7 @@
 	--pf-border-focus: var(--color-accent-2);
 	--pf-outline-focus: var(--color-accent);
 	--pf-outline-offset: none;
-	--pf-font: var(--font-mono);
+	--pf-font: var(--font-sans);
 	--pf-text: var(--color-global-text);
 	--pf-text-secondary: var(--color-muted);
 	--pf-skeleton: var(--color-global-bg);

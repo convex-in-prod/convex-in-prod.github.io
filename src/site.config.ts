@@ -4,7 +4,7 @@ import type { SiteConfig } from "@/types";
 export const siteConfig: SiteConfig = {
 	url: "https://convex-in-prod.github.io/",
 	title: "Convex in Prod",
-	author: "Convex in Prod",
+	author: "Roman Leventov",
 	description: "Technical notes about running Convex-backed systems in production.",
 	lang: "en-US",
 	ogLocale: "en_US",
