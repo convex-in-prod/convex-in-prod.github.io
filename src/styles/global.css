@@ -139,3 +139,9 @@
 	--tw-prose-quotes: var(--color-quote);
 	--tw-prose-th-borders: #666;
 }
+
+/* Tailwind Typography otherwise renders Markdown inline-code delimiters. */
+.prose code::before,
+.prose code::after {
+	content: none;
+}

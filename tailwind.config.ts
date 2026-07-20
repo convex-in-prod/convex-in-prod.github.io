@@ -20,8 +20,12 @@ export default {
 							borderLeftWidth: "0",
 						},
 						code: {
-							border: "1px dotted #666",
-							borderRadius: "2px",
+							backgroundColor: "color-mix(in srgb, var(--color-global-text) 12%, transparent)",
+							borderWidth: "0",
+							borderRadius: "0.25rem",
+							color: "color-mix(in srgb, var(--color-accent) 55%, var(--color-global-text))",
+							fontWeight: "inherit",
+							padding: "0.1em 0.3em",
 						},
 						kbd: {
 							"&:where([data-theme='dark'], [data-theme='dark'] *)": {

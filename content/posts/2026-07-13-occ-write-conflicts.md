@@ -11,7 +11,7 @@ This post assumes that you are familiar with Convex's Optimistic Concurrency Con
 
 In the post [about my Convex application](/posts/about-blog-and-my-app/), I credit Convex's OCC model for enabling the development of the monolithic "reactive core" of my application (consisting of webhooks, crons, workflows, user interactions, etc.) with an acceptable level of engineering complexity and effort. The application scaled to about 350 tables and hundreds of thousands of lines of production code in about nine months of mostly solo agentic coding. I don't think it would have been possible to develop the application as quickly against a database using pessimistic concurrency control (PCC), such as Postgres. Thus, I concur with the main idea of [Jamie Turner's post](https://stack.convex.dev/convex-database-limits-explained) that OCC scales better than PCC.
 
-The flip side of Convex's OCC model is the risk of **permanent mutation failures due to OCC write conflicts**. I'll call them *OCC failures* for short below. By default (more on this below), this happens after the Convex backend attempts a mutation **five times** (the original attempt and four retries), encounters a conflict with another mutation each time, and loses every conflict. Scheduled mutations use a separate retry loop that continues beyond this limit.
+The flip side of Convex's OCC model is the risk of **permanent mutation failures due to OCC write conflicts**. I'll call them _OCC failures_ for short below. By default (more on this below), this happens after the Convex backend attempts a mutation **five times** (the original attempt and four retries), encounters a conflict with another mutation each time, and loses every conflict. Scheduled mutations use a separate retry loop that continues beyond this limit.
 
 **OCC failures are bad because the application could fail in unpredictable ways**: it could fail to persist user data, leave a workflow spanning multiple mutations in an inconsistent state, or become "stuck" in an important way, such as when the failed mutation was supposed to schedule a follow-up task. This is not unique to OCC failures in particular: other types of mutation failures, such as exceeding the mutation limits (one-second runtime, limits on documents or bytes read, etc.), are equally bad. However, they are far less common and usually reflect real programming bugs, whereas failures due to OCC write conflicts can appear in perfectly semantically correct Convex mutations simply because they aren't written "scalably enough."
 
@@ -37,28 +37,28 @@ I've had a few OCC failures that were the result of direct programming mistakes,
 
 But apart from these two categories of possible OCC failures, I actually had dozens of different failure patterns, with a surprising amount of variety among them (rather than a few shared themes like a hot counter), often in very mundane-looking Convex code.
 
-For example, imagine there are a few documents with some business logic state, such as `TicketState`, `AccountBalance`, a chat with a user (a Convex table like `chatMessages`), and the LLM agent state that deals with this chat, which we'll call `LlmState`. There is some mutation that needs to commit a state transition, an automated response to the user, or anything else based on the up-to-date versions of these objects. `TicketState` and `AccountBalance` are updated about once per minute, with an `updatedAt` field written to them. If, by coincidence, the updates to `TicketState` and `AccountBalance` happen within one or two seconds of each other, *and* a message or two arrives in the chat from the user (adding a document or two to the `chatMessages` table), *and* the LLM state is updated around the same time by an LLM that has just finished processing the previous user message sent a minute ago, this is enough to make the unlucky mutation lose five times and fail permanently. This is especially likely if some of these updates to `AccountBalance`, `TicketState`, `LlmState`, etc. also consult one another's state during their respective mutations, causing a bit of an OCC write conflict retry storm; in this case, even less coincidence is required to make one of these mutations fail permanently.
+For example, imagine there are a few documents with some business logic state, such as `TicketState`, `AccountBalance`, a chat with a user (a Convex table like `chatMessages`), and the LLM agent state that deals with this chat, which we'll call `LlmState`. There is some mutation that needs to commit a state transition, an automated response to the user, or anything else based on the up-to-date versions of these objects. `TicketState` and `AccountBalance` are updated about once per minute, with an `updatedAt` field written to them. If, by coincidence, the updates to `TicketState` and `AccountBalance` happen within one or two seconds of each other, _and_ a message or two arrives in the chat from the user (adding a document or two to the `chatMessages` table), _and_ the LLM state is updated around the same time by an LLM that has just finished processing the previous user message sent a minute ago, this is enough to make the unlucky mutation lose five times and fail permanently. This is especially likely if some of these updates to `AccountBalance`, `TicketState`, `LlmState`, etc. also consult one another's state during their respective mutations, causing a bit of an OCC write conflict retry storm; in this case, even less coincidence is required to make one of these mutations fail permanently.
 
-Note that individually, none of these documents and tables are updated particularly frequently: this is not a real-time group chat with dozens of messages flying by per second. It's just that *sometimes* (even if rarely), three to five updates happen within a one- or two-second window. The onset of retry chains, with Convex OCC write conflict retries happening at randomized intervals within 0–100 ms, 0–200 ms, 0–400 ms, and 0–800 ms for retries #1, #2, #3, and #4 respectively, effectively stretches the "coincidence window" up to three or four seconds for the eventual losing mutation.
+Note that individually, none of these documents and tables are updated particularly frequently: this is not a real-time group chat with dozens of messages flying by per second. It's just that _sometimes_ (even if rarely), three to five updates happen within a one- or two-second window. The onset of retry chains, with Convex OCC write conflict retries happening at randomized intervals within 0–100 ms, 0–200 ms, 0–400 ms, and 0–800 ms for retries #1, #2, #3, and #4 respectively, effectively stretches the "coincidence window" up to three or four seconds for the eventual losing mutation.
 
 Another example: imagine there is some mutation that writes some state and needs to cancel some crons with a modest fan-out, e.g., about a dozen. Imagine a user belongs to some groups, and when the user account transitions to a particular state in the mutation, some periodic check-ups of the user in those groups, implemented as crons or periodic [scheduled functions](https://docs.convex.dev/scheduling/scheduled-functions), should be cancelled. It's very easy to write at the end of this mutation:
 
 ```ts
 const accountGroupCheckUpsScheduledFnIds = await ctx.db.query(/* ... */);
 await Promise.all(
-  accountGroupCheckUpsScheduledFnIds.map((fnId) => ctx.scheduler.cancel(fnId))
+	accountGroupCheckUpsScheduledFnIds.map((fnId) => ctx.scheduler.cancel(fnId)),
 );
 ```
 
-But if five of these scheduled functions *start* within a few seconds of the mutation that transitions the account state, they update their own records as they run and complete, thus causing OCC write conflicts with the mutation that is attempting to update the statuses of these scheduled functions to `canceled`. This can make the mutation fail permanently. (Note that this example leads to an OCC failure even if the mutation doesn't cancel these scheduled functions but merely reads their statuses, because reading a document from within a mutation while that document is updated by another mutation also leads to an OCC write conflict in Convex.)
+But if five of these scheduled functions _start_ within a few seconds of the mutation that transitions the account state, they update their own records as they run and complete, thus causing OCC write conflicts with the mutation that is attempting to update the statuses of these scheduled functions to `canceled`. This can make the mutation fail permanently. (Note that this example leads to an OCC failure even if the mutation doesn't cancel these scheduled functions but merely reads their statuses, because reading a document from within a mutation while that document is updated by another mutation also leads to an OCC write conflict in Convex.)
 
-The immediate remedies for the OCC failures in these two examples are fairly trivial: in the first example, the fields that make each `TicketState` and `AccountBalance` sync tick update the documents, such as `lastUpdatedAt`, should either be moved into separate tables like `ticketStateUpdates` and `accountBalanceUpdates`, or removed altogether. In the second example, a separate mutation like `cancelCheckUp` should be added and these mutations should be *scheduled* (rather than called directly) from the parent mutation:
+The immediate remedies for the OCC failures in these two examples are fairly trivial: in the first example, the fields that make each `TicketState` and `AccountBalance` sync tick update the documents, such as `lastUpdatedAt`, should either be moved into separate tables like `ticketStateUpdates` and `accountBalanceUpdates`, or removed altogether. In the second example, a separate mutation like `cancelCheckUp` should be added and these mutations should be _scheduled_ (rather than called directly) from the parent mutation:
 
 ```ts
 await Promise.all(
-  accountGroupCheckUpsScheduledFnIds.map(
-    (fnId) => ctx.scheduler.runAfter(0, mymodule.cancelCheckUp, { fnId })
-  )
+	accountGroupCheckUpsScheduledFnIds.map((fnId) =>
+		ctx.scheduler.runAfter(0, mymodule.cancelCheckUp, { fnId }),
+	),
 );
 ```
 
@@ -122,7 +122,13 @@ Convex MCP/health insights return the following structure:
 }
 ```
 
-To better understand an OCC failure—the full retry chain and timing, and the full list of winning mutations—the insights from Convex MCP are insufficient. You need to explore the Convex logs from a few seconds before the OCC failure's `timestamp` to find the logs of the first four attempts that led up to the permanent mutation failure, and the logs of the concurrent mutations that likely conflicted with the failed mutation and won. Because these Convex logs are likely a few hours or days in the past, they should be queried through Axiom or another log store that you use for Convex logs.
+To better understand an OCC failure—the full retry chain and timing, and the full list of winning
+mutations—the insights from Convex MCP are insufficient. Explore the Convex logs from a few seconds
+before the OCC failure's `timestamp` to find the preceding backend attempts that led to the
+exhausted backend invocation and the concurrent mutations that likely conflicted with it and won.
+Then check any scheduler-owned chain or caller retry before classifying the failure as permanent.
+Because these Convex logs are likely a few hours or days in the past, query them through Axiom or
+another log store that you use for Convex logs.
 
 Convex MCP/health insights are available only in Convex Cloud, not in self-hosted Convex. Fortunately, all the information from Convex MCP insights about OCC failures is also recoverable from Convex logs alone, only without a nice, succinct interface. I use the following section in my project's SRE agent skill:
 
@@ -132,93 +138,146 @@ Convex MCP/health insights are available only in Convex Cloud, not in self-hoste
 ````markdown
 ## Convex OCC Failures
 
-Self-hosted Convex `function_execution` logs retain OCC metadata in Axiom. Read the detailed queries
-and field semantics in [Axiom](../axiom/SKILL.md) under `Investigate Convex OCC conflicts`.
+Self-hosted Convex `function_execution` logs retain OCC metadata in Axiom. Replace
+`<deploymentName>` below with the deployment name attached to those logs.
 
 Use these query shapes directly for the standard 72-hour check and reconstruction:
 
 ```bash
-# Backend invocations that exhausted Convex's internal OCC retries.
-axiom query "['prod'] | where ['convex.deployment_name'] == 'convex-self-hosted' and ['data.topic'] == 'function_execution' and ['data.status'] == 'failure' and ['data.will_retry'] == false and isnotnull(['data.occ_info.table_name']) | extend functionPath=tostring(['data.function.path']), requestId=tostring(['data.function.request_id']), tableName=tostring(['data.occ_info.table_name']), sample=pack('requestId', ['data.function.request_id'], 'documentId', ['data.occ_info.document_id'], 'writeSource', ['data.occ_info.write_source'], 'retryCount', ['data.occ_info.retry_count']) | order by _time desc | summarize exhaustedInvocations=count(), uniqueRequests=dcount(requestId), samples=make_list(sample, 10) by functionPath, tableName | order by exhaustedInvocations desc" --start-time "-72h" -f json
+# Audit final-failure OCC metadata. All false is non-OCC; all true is application-table OCC;
+# table false with retry count and write source true is system-table OCC. Investigate every other
+# combination as malformed telemetry.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.status'] == 'failure' and ['data.will_retry'] == false | extend hasTable=isnotnull(['data.occ_info.table_name']), hasRetryCount=isnotnull(['data.occ_info.retry_count']), hasWriteSource=isnotnull(['data.occ_info.write_source']) | summarize failures=count() by hasTable, hasRetryCount, hasWriteSource | order by failures desc" --start-time "-72h" -f json
 
-# Retried backend attempts, including their competing writer source.
-axiom query "['prod'] | where ['convex.deployment_name'] == 'convex-self-hosted' and ['data.topic'] == 'function_execution' and ['data.will_retry'] == true and isnotnull(['data.occ_info.table_name']) | summarize conflictAttempts=count(), affectedRequests=dcount(['data.function.request_id']), maxRetryCount=max(['data.occ_info.retry_count']) by functionPath=['data.function.path'], tableName=['data.occ_info.table_name'], competingWriteSource=['data.occ_info.write_source'] | order by conflictAttempts desc | take 50" --start-time "-72h" -f json
+# Audit retryable OCC metadata independently. All false is non-OCC retry evidence; investigate
+# every partial combination.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.will_retry'] == true | extend hasTable=isnotnull(['data.occ_info.table_name']), hasRetryCount=isnotnull(['data.occ_info.retry_count']), hasWriteSource=isnotnull(['data.occ_info.write_source']) | summarize attempts=count() by hasTable, hasRetryCount, hasWriteSource | order by attempts desc" --start-time "-72h" -f json
 
-# One mutation's backend retry attempts. Keep both request ID and function path filters.
-axiom query "['prod'] | where ['convex.deployment_name'] == 'convex-self-hosted' and ['data.topic'] == 'function_execution' and ['data.function.request_id'] == '<requestId>' and ['data.function.path'] == '<functionPath>' | project _time, ['data.execution_time_ms'], ['data.user_execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'], ['data.occ_info.retry_count'], ['data.occ_info.table_name'], ['data.occ_info.document_id'], ['data.occ_info.write_source'] | order by _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
+# Backend-exhausted application-table OCC invocations.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.status'] == 'failure' and ['data.will_retry'] == false and isnotnull(['data.occ_info.table_name']) and isnotnull(['data.occ_info.retry_count']) and isnotnull(['data.occ_info.write_source']) | extend functionPath=tostring(['data.function.path']), requestId=tostring(['data.function.request_id']), tableName=tostring(['data.occ_info.table_name']) | summarize exhaustedInvocations=count(), uniqueRequests=dcount(requestId) by functionPath, tableName | order by exhaustedInvocations desc" --start-time "-72h" -f json
+
+# Backend-exhausted system-table OCC invocations. These rows have no table or document field.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.status'] == 'failure' and ['data.will_retry'] == false and isnull(['data.occ_info.table_name']) and isnotnull(['data.occ_info.retry_count']) and isnotnull(['data.occ_info.write_source']) | extend functionPath=tostring(['data.function.path']), requestId=tostring(['data.function.request_id']), competingWriteSource=tostring(['data.occ_info.write_source']) | summarize exhaustedInvocations=count(), uniqueRequests=dcount(requestId), maxRetryCount=max(['data.occ_info.retry_count']) by functionPath, competingWriteSource | order by exhaustedInvocations desc" --start-time "-72h" -f json
+
+# Retried application-table OCC attempts.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.will_retry'] == true and isnotnull(['data.occ_info.table_name']) and isnotnull(['data.occ_info.retry_count']) and isnotnull(['data.occ_info.write_source']) | summarize conflictAttempts=count(), affectedRequests=dcount(['data.function.request_id']), maxRetryCount=max(['data.occ_info.retry_count']) by functionPath=['data.function.path'], tableName=['data.occ_info.table_name'], competingWriteSource=['data.occ_info.write_source'] | order by conflictAttempts desc | take 50" --start-time "-72h" -f json
+
+# Retried system-table OCC attempts.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.will_retry'] == true and isnull(['data.occ_info.table_name']) and isnotnull(['data.occ_info.retry_count']) and isnotnull(['data.occ_info.write_source']) | summarize conflictAttempts=count(), affectedRequests=dcount(['data.function.request_id']), maxRetryCount=max(['data.occ_info.retry_count']) by functionPath=['data.function.path'], competingWriteSource=['data.occ_info.write_source'] | order by conflictAttempts desc | take 50" --start-time "-72h" -f json
+
+# Rows for one ordinary action/client-backed mutation invocation. Keep both request ID and function
+# path filters.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.function.request_id'] == '<requestId>' and ['data.function.path'] == '<functionPath>' | project _time, ['data.execution_time_ms'], ['data.user_execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'], ['data.occ_info.retry_count'], ['data.occ_info.table_name'], ['data.occ_info.document_id'], ['data.occ_info.write_source'] | order by _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
+
+# One scheduled mutation's retry chain. Do not filter by request ID because each scheduled attempt
+# can receive a new one.
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.function.path'] == '<scheduledFunctionPath>' | project _time, ['data.function.request_id'], ['data.execution_time_ms'], ['data.user_execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'], ['data.occ_info.retry_count'], ['data.occ_info.table_name'], ['data.occ_info.document_id'], ['data.occ_info.write_source'] | order by ['data.function.mutation_retry_count'] asc, _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
 
 # Parent and dependency calls sharing that request ID.
-axiom query "['prod'] | where ['convex.deployment_name'] == 'convex-self-hosted' and ['data.topic'] == 'function_execution' and ['data.function.request_id'] == '<requestId>' | project _time, ['data.function.path'], ['data.function.type'], ['data.execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'], ['data.occ_info.table_name'], ['data.occ_info.document_id'], ['data.occ_info.write_source'] | order by _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.function.request_id'] == '<requestId>' | project _time, ['data.function.path'], ['data.function.type'], ['data.execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'], ['data.occ_info.table_name'], ['data.occ_info.document_id'], ['data.occ_info.write_source'] | order by _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
 
 # Candidate competing executions. Convert a source such as module.js:function to module:function.
-axiom query "['prod'] | where ['convex.deployment_name'] == 'convex-self-hosted' and ['data.topic'] == 'function_execution' and ['data.function.path'] == '<normalizedCompetingFunctionPath>' | project _time, ['data.function.request_id'], ['data.execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'] | order by _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
+axiom query "['prod'] | where ['convex.deployment_name'] == '<deploymentName>' and ['data.topic'] == 'function_execution' and ['data.function.path'] == '<normalizedCompetingFunctionPath>' | project _time, ['data.function.request_id'], ['data.execution_time_ms'], ['data.status'], ['data.will_retry'], ['data.function.mutation_retry_count'] | order by _time asc" --start-time "<narrow-absolute-start>" --end-time "<narrow-absolute-end>" -f json
 ```
 
 Apply these rules:
 
-1. Filter Axiom to `convex.deployment_name == "convex-self-hosted"`.
-2. Require `status == "failure"`, `will_retry == false`, and a present `occ_info.table_name` to
+1. Filter Axiom to the intended `convex.deployment_name`.
+2. Classify application-table OCC from present `table_name`, `retry_count`, and `write_source`.
+   Classify system-table OCC from absent `table_name` plus present `retry_count` and `write_source`.
+   All three absent means non-OCC; reject partial combinations.
+3. Require `status == "failure"` and `will_retry == false` in addition to a valid OCC shape to
    identify one backend invocation that exhausted its internal OCC retries. Do not yet call that a
-   failure that was visible to the caller.
-3. Group first by losing function path and contested table. Compare conflict record count with
-   distinct losing request IDs.
-4. Use `write_source` to identify the competing writer and `document_id` to determine whether one
-   hot document dominates. `write_source` is not the competing request ID.
-5. Correlate the losing request ID and event `_time` with nearby function, worker, and application
+   caller-visible permanent failure.
+4. Group application-table conflicts by losing function, table, and writer. Group system-table
+   conflicts by losing function and writer because those rows have no table or document metadata.
+   Compare conflict-record count with distinct losing request IDs.
+5. Use `write_source` to identify the competing writer and, for application-table OCC only,
+   `document_id` to determine whether one hot document dominates. `write_source` is not the
+   competing request ID.
+6. Correlate the losing request ID and event `_time` with nearby function, worker, and application
    logs. `_time` is not the internal timestamp of the competing write.
-6. Treat `will_retry == true` rows as contention evidence, not permanent failures. Analyze them when
+7. Treat `will_retry == true` rows as contention evidence, not permanent failures. Analyze them when
    they are frequent, retries are deep, or they explain permanent failures.
 
-For every invocation that exhausted its backend retries, and for any significant cluster of retried conflicts, proactively
+For every backend-exhausted invocation, and for any significant retried-conflict cluster, proactively
 reconstruct the losing mutation's retry chain and the nearby mutation calls. Do not stop at a grouped
-conflict count. Use the same `data.function.request_id` and `data.function.path` to collect all
-attempts of the losing mutation in time order. A request ID can also cover a parent action and other
-function calls, so request ID alone does not define one mutation retry chain.
+conflict count. For ordinary action/client-backed calls, start with the same
+`data.function.request_id` and `data.function.path`. A request ID can also cover a parent action and
+other function calls, so request ID alone does not define one mutation retry chain. For scheduled
+functions, use the same function path over a narrow absolute window without a request-ID filter.
 
-Account for two retry levels:
+Account for the retry and rejection mechanisms separately:
 
-- Convex backend retries one invocation internally. These attempts share request ID and function
-  path, and `data.function.mutation_retry_count` increases within the invocation.
-- [`scripts/patch-convex-occ-retry.mjs`](../../../scripts/patch-convex-occ-retry.mjs) patches the
-  installed `convex` package's HTTP client, WebSocket client, and action `runMutation` implementation. When
-  one backend invocation exhausts OCC retries, these callers wait `2000 ms` and repeat the complete
-  mutation once with a fresh backend retry budget. Direct backend execution paths that do not call
+- Convex backend OCC retries are identified by `data.occ_info.retry_count`, not by
+  `data.function.mutation_retry_count`. Keep request ID and function path when reconstructing an
+  ordinary action/client-backed invocation.
+- Scheduled mutation retries can use a new request ID for every attempt.
+  `data.function.mutation_retry_count` can continue across OCC attempts and non-OCC failures. Order
+  the same scheduled function path by that count and `_time`. Treat a match by path, timing, and
+  monotonic retry count as probable correlation unless a durable scheduler identifier independently
+  links the attempts.
+- Scheduler queue rejection is a non-OCC event without an `occ_info` row. It can advance a
+  scheduled mutation chain and `mutation_retry_count`, but it is not a backend conflict attempt.
+- If the optional `convex` client patch described earlier in this post is installed, its HTTP
+  client, WebSocket client, and action `runMutation` implementation make one outer retry. When one
+  backend invocation exhausts OCC retries, these callers wait `2000 ms` and repeat the complete
+  mutation with a fresh backend retry budget. Direct backend execution paths that do not call
   through the patched `convex` package do not receive this outer retry.
+- Application code can own another bounded caller loop. Reconstruct its attempts from caller logs
+  and the operation's exact attempt or ownership fence. Keep this loop separate from scheduler
+  retries, queue rejections, backend OCC retries, and retries of any external request that preceded
+  the mutation.
 
-The outer retry can keep the same request ID for an action's `runMutation`, or use another request ID
-for browser/HTTP client calls. Identify its boundary by the row that exhausted the backend retries followed about two
-seconds later by the same mutation with `mutation_retry_count == 0`. Use caller/application logs to
-link different request IDs. When many calls to the same function run concurrently, timing and function path alone provide
-only a probable correlation. A successful outer invocation means the earlier invocation was
-recovered and did not result in a permanent failure visible to the caller. Classify an effective permanent failure
-only after checking the outer retry and caller outcome.
+`data.occ_info.retry_count` counts OCC retries and is present only on OCC rows. It is not the complete
+mutation or scheduler retry ordinal and does not count queue rejection. Keep it separate from
+`data.function.mutation_retry_count`, queue rejection, the patched caller retry, application-owned
+caller loops, and scheduler retry chains.
+
+The patched caller retry can keep the same request ID for an action's `runMutation`, or use another
+request ID for browser/HTTP client calls. Correlate a backend-exhausted row with the same mutation
+path about two seconds afterward and with caller/application logs. Do not use
+`mutation_retry_count == 0` as proof of the outer retry. Under high same-function concurrency,
+timing and function path alone are only probable correlation. A successful outer invocation means
+the earlier backend-exhausted row was recovered and was not a caller-visible permanent failure.
+Classify an effective permanent failure only after checking the applicable scheduler chain,
+application-owned caller loop, patched caller retry, and caller outcome.
 
 Present the reconstruction with these columns:
 
-| Call / try | Approx. started at | Runtime (ms) | Result | Conflict document / table | Competing `write_source` | Competing execution / start |
-| --- | --- | --- | --- | --- | --- | --- |
+| Retry mechanism / attempt | `mutation_retry_count` | Backend OCC retry | Request ID | Approx. started at | Runtime (ms) | Result | Conflict document / table | Competing `write_source` | Competing execution / start |
+| ------------------------- | ---------------------- | ----------------- | ---------- | ------------------ | ------------ | ------ | ------------------------- | ------------------------ | --------------------------- |
 
-Put the outer call number, backend try number, and request ID in `Call / try`. Use
-`data.function.mutation_retry_count` for the backend try number. Derive approximate start time by
-subtracting `data.execution_time_ms` from `_time`; label it approximate. Merge function execution and
-commit/retry state in `Result`: for example, `committed`, `OCC; backend retry`, or `backend retries
-exhausted`. A row with `status == "success"` and `will_retry == true` means the function returned but
-its commit conflicted. Include the later `will_retry == false` row that committed or exhausted the
-invocation, plus the outer invocation when the patched client made one.
+Name the backend invocation, scheduled mutation chain, application caller loop, or patched caller
+retry in `Retry mechanism / attempt`; include the outer call number when applicable. Keep
+`data.function.mutation_retry_count`, `data.occ_info.retry_count`, and request ID in separate
+columns. Treat `mutation_retry_count` as raw scheduler/function retry evidence, not the backend try
+number. Derive approximate start time by subtracting `data.execution_time_ms` from `_time`; label it
+approximate. Merge function execution and commit/retry state in `Result`: for example, `committed`,
+`OCC; retry`, `non-OCC failure; retry`, or `backend retries exhausted`. A row with
+`status == "success"` and `will_retry == true` means the function returned but its commit conflicted.
+Include the subsequent attempt that committed or exhausted the chain, plus the outer invocation when
+the patched client made one.
 
 Then search the same narrow time window for executions whose function path matches the competing
 `write_source`, plus related calls sharing the losing request ID. Record plausible competing
 executions and their approximate starts. The OCC event does not contain the competing request ID or
-the internal timestamp of the conflicting write. A match by path and time is therefore a candidate, not proven
-winner attribution; write `unknown` when no independent request/log correlation establishes it.
+the internal timestamp of the conflicting write. A match by path and time is therefore a candidate,
+not proven winner attribution; write `unknown` when no independent request/log correlation establishes it.
 
-Keep document IDs and function names in SRE evidence when needed. Do not include row contents or raw
-customer, exchange, phone, card, or bank account identifiers.
+Keep document IDs and function names in SRE evidence when needed. Do not include row contents or
+sensitive application data.
 ````
 
 </details>
 
-It assumes that the [`axiom` CLI](https://axiom.co/docs/reference/cli) is installed. Note that it also hardcodes the path to the script that patches `convex-js`, as described in the previous section; that path is specific to my project and should likely be updated in yours. Of course, this skill could easily be adapted to take advantage of Convex MCP insights available for Convex Cloud deployments.
+It assumes that the [`axiom` CLI](https://axiom.co/docs/reference/cli) is installed. Replace the deployment placeholder and, if needed, the generic `prod` dataset name. The guidance about the outer caller retry applies only if the `convex` patch described in the previous section is installed. Of course, this skill could easily be adapted to take advantage of Convex MCP insights available for Convex Cloud deployments.
+
+### OCC failures caused by Convex schema validation
+
+After publishing this post, I encountered another type of OCC failure with `occ_write_source: "schema_validation_progress_updated"`. A mutation that writes a document compatible with the active schema but incompatible with a schema being deployed can also attempt to fail the new schema, and in doing so conflict with Convex's own schema-validation progress updates. This is a system-table OCC conflict, so its `function_execution` log has `retry_count` and `write_source` but no `table_name` or `document_id`. A log query that requires `occ_info.table_name` would therefore miss it.
+
+I wrote a separate post about the [mechanics of `schema_validation_progress_updated` OCC failures and my patch for `convex-backend`](/posts/schema-validation-progress-updated-occ-failures/).
 
 ### Approaches to fixing specific OCC failures
 
@@ -234,7 +293,7 @@ Splitting tables simply means moving frequently updated fields from one table to
 
 A projection table aggregates a few fields from different tables into a single table so that the mutation experiencing OCC failures can read fewer documents. In the same example, suppose that the failing mutation was reading `AccountBalance.balanceAmount` from the `AccountBalance` document and `TicketState.status` from the `TicketState` document. The projection table would be `someMutationInputs`, with fields `accountBalanceId`, `accountBalanceAmount`, `ticketStateId`, and `ticketStatus`; the mutations that normally update `AccountBalance.balanceAmount` would also start updating `someMutationInputs`; the failing mutation would now avoid reading the `AccountBalance` and `TicketState` documents and instead read only the relevant document from `someMutationInputs`.
 
-Table splitting and projections are the second most common way to prevent OCC failures in my experience. To give you a sense of how common occasional OCC failures in "benign" Convex code can be, **about 30–40 tables out of about 350 tables in my application are either split-out or projection tables that wouldn't have existed if I hadn't needed to avoid OCC failures**. The schema is significantly more [snowflake-y](https://en.wikipedia.org/wiki/Snowflake_schema) (due to split-out tables) and less normalised (due to projection tables) than my application's domain logic requires, and more so than I expected, considering that Convex is a *document* database.
+Table splitting and projections are the second most common way to prevent OCC failures in my experience. To give you a sense of how common occasional OCC failures in "benign" Convex code can be, **about 30–40 tables out of about 350 tables in my application are either split-out or projection tables that wouldn't have existed if I hadn't needed to avoid OCC failures**. The schema is significantly more [snowflake-y](https://en.wikipedia.org/wiki/Snowflake_schema) (due to split-out tables) and less normalised (due to projection tables) than my application's domain logic requires, and more so than I expected, considering that Convex is a _document_ database.
 
 However, this overhead is still manageable, and I readily accept it in exchange for Convex's OCC advantages.
 
@@ -252,11 +311,11 @@ From its description, it seems that this is what should be used to fix most OCC 
 
 #### 5. Avoiding unnecessary writes and reads
 
-There have been a few OCC failures in my Convex application that were caused by somewhat careless `ctx.db.patch("myTable", myDocId, { someField: value })` calls on objects that *sometimes* don't need to be updated because the values in the stored document are already the same as in the patch arguments. It might be a little surprising that `convex-js` or the Convex backend doesn't already do this checking itself and thus prevent unnecessary writes.
+There have been a few OCC failures in my Convex application that were caused by somewhat careless `ctx.db.patch("myTable", myDocId, { someField: value })` calls on objects that _sometimes_ don't need to be updated because the values in the stored document are already the same as in the patch arguments. It might be a little surprising that `convex-js` or the Convex backend doesn't already do this checking itself and thus prevent unnecessary writes.
 
 #### 6. Sharding and striping of counter-like writes
 
-This pattern is implemented in the [shared-counter component](https://github.com/get-convex/sharded-counter/blob/main/src/component/public.ts), although the component source code is so small that I think, rather than actually using it *as a Convex component* in your application, it makes more sense to treat it as example code and a pattern, copy it into your codebase, and adapt it to the specific use case. More often than not, multiple counters are updated at the same time; for example, account deposits and withdrawals arrive as events and we want to compute not just the count of deposits or withdrawals, but the count plus the total sum.
+This pattern is implemented in the [shared-counter component](https://github.com/get-convex/sharded-counter/blob/main/src/component/public.ts), although the component source code is so small that I think, rather than actually using it _as a Convex component_ in your application, it makes more sense to treat it as example code and a pattern, copy it into your codebase, and adapt it to the specific use case. More often than not, multiple counters are updated at the same time; for example, account deposits and withdrawals arrive as events and we want to compute not just the count of deposits or withdrawals, but the count plus the total sum.
 
 ### Recap
 

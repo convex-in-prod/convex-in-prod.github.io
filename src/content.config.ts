@@ -13,7 +13,12 @@ const baseSchema = z.object({
 });
 
 const post = defineCollection({
-	loader: glob({ base: "./content/posts", pattern: "**/*.{md,mdx}" }),
+	loader: glob({
+		base: "./content/posts",
+		pattern: "**/*.{md,mdx}",
+		generateId: ({ entry }) =>
+			entry.replace(/\.(?:md|mdx)$/, "").replace(/(^|\/)\d{4}-\d{2}-\d{2}-/, "$1"),
+	}),
 	schema: ({ image }) =>
 		baseSchema.extend({
 			description: z.string(),
