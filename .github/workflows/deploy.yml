@@ -21,6 +21,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Checkout published Convex packages
+        uses: actions/checkout@v7
+        with:
+          repository: convex-in-prod/convex-js
+          ref: aec09afe0b76d34ebbe095907ca4d3d329110a4f
+          path: .convex-package-source
+          sparse-checkout: packages/convex
+          persist-credentials: false
+
+      - name: Stage published Convex packages
+        run: |
+          mkdir -p public/packages
+          cp -a .convex-package-source/packages/convex public/packages/convex
+
       - name: Install, build, and upload site
         uses: withastro/action@v6
         with:
