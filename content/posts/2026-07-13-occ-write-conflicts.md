@@ -275,7 +275,7 @@ It assumes that the [`axiom` CLI](https://axiom.co/docs/reference/cli) is instal
 
 ### OCC failures caused by Convex schema validation
 
-After publishing this post, I encountered another type of OCC failure with `occ_write_source: "schema_validation_progress_updated"`. A mutation that writes a document compatible with the active schema but incompatible with a schema being deployed can also attempt to fail the new schema, and in doing so conflict with Convex's own schema-validation progress updates. This is a system-table OCC conflict, so its `function_execution` log has `retry_count` and `write_source` but no `table_name` or `document_id`. A log query that requires `occ_info.table_name` would therefore miss it.
+After publishing this post, I encountered another type of OCC failure with `occ_write_source: "schema_validation_progress_updated"`. A mutation that writes a document compatible with the active schema but incompatible with a schema being deployed can also attempt to fail the new schema, and in doing so conflict with Convex's own schema-validation progress updates. This is a system-table OCC conflict, so its `function_execution` log has `retry_count` and `write_source` but no `table_name` or `document_id`.
 
 I wrote a separate post about the [mechanics of `schema_validation_progress_updated` OCC failures and my patch for `convex-backend`](/posts/schema-validation-progress-updated-occ-failures/).
 
