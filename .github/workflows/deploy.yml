@@ -25,14 +25,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: convex-in-prod/convex-js
-          ref: fdf4d497e224d87494c6566fa23d80ddf03245f9
+          ref: 5cd7c9ded56d8c436644714aa67bb41be134886d
           path: .convex-package-source
           sparse-checkout: packages/convex
           persist-credentials: false
 
       - name: Verify published Convex package source
         env:
-          EXPECTED_PACKAGE_SOURCE_COMMIT: fdf4d497e224d87494c6566fa23d80ddf03245f9
+          EXPECTED_PACKAGE_SOURCE_COMMIT: 5cd7c9ded56d8c436644714aa67bb41be134886d
         run: |
           test "$(git -C .convex-package-source rev-parse HEAD)" = "$EXPECTED_PACKAGE_SOURCE_COMMIT"
           test -d .convex-package-source/packages/convex
