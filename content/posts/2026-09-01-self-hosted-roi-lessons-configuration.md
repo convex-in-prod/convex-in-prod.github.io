@@ -1,5 +1,5 @@
 ---
-title: Convex self-hosting: ROI, operational lessons, configuration 
+title: "Convex self-hosting: ROI, operational lessons, configuration"
 description: ""
 publishDate: 2026-09-01
 tags: ["self hosted", "operations", "internals"]
