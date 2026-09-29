@@ -50,6 +50,20 @@ Push to `main`. GitHub Actions builds the site and deploys it to GitHub Pages.
 
 In repository settings, Pages should use **GitHub Actions** as the source.
 
+## Immutable package archives
+
+This repository owns `public/packages/convex/<source-sha>/convex.tgz` and the
+adjacent provenance manifests. Pages serves them at
+`https://convex-in-prod.github.io/packages/convex/<source-sha>/convex.tgz`.
+Keep every published directory immutable, including its manifest and archive bytes.
+
+Build new packages from an exact reviewed `convex-in-prod/convex-js` source commit
+using that repository's package workflow. Verify the embedded source/upstream
+provenance, package version, SHA-512 checksum and lockfile integrity, then add a
+new source-SHA directory here. Source and patch-history commits belong in the SDK
+repository; archive publication commits belong here. Existing consumer URLs and
+integrity pins survive source history rewrites.
+
 ## Credits
 
 This site is based on the MIT-licensed Astro Cactus theme by Chris Williams.

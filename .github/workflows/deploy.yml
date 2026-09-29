@@ -21,27 +21,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Checkout published Convex packages
-        uses: actions/checkout@v7
-        with:
-          repository: convex-in-prod/convex-js
-          ref: 7cf8366e5228609fcae38fe1b0af1410741dd517
-          path: .convex-package-source
-          sparse-checkout: packages/convex
-          persist-credentials: false
-
-      - name: Verify published Convex package source
-        env:
-          EXPECTED_PACKAGE_SOURCE_COMMIT: 7cf8366e5228609fcae38fe1b0af1410741dd517
-        run: |
-          test "$(git -C .convex-package-source rev-parse HEAD)" = "$EXPECTED_PACKAGE_SOURCE_COMMIT"
-          test -d .convex-package-source/packages/convex
-
-      - name: Stage published Convex packages
-        run: |
-          mkdir -p public/packages
-          cp -a .convex-package-source/packages/convex public/packages/convex
-
       - name: Install, build, and upload site
         uses: withastro/action@v6
         with:
