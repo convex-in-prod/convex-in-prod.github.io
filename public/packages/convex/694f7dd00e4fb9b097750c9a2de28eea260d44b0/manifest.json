@@ -1,0 +1,10 @@
+{
+  "name": "convex",
+  "version": "1.47.0+convex-in-prod.694f7dd00e4f",
+  "sourceSha": "694f7dd00e4fb9b097750c9a2de28eea260d44b0",
+  "upstreamBaseSha": "11b0a4a47ab40f966e6fd61b8b7880633bac3570",
+  "artifact": "convex.tgz",
+  "sha512": "86bc17443e24554c13da50c952f1c81739edbec28e836e067218fd32752e4ab820d04fb1413010cf155ad4b7632ac083295f9802e1d394fbdc166aef9f6a3b7b",
+  "integrity": "sha512-hrwXRD4kVUwT2lDJUvHIFzntvsKOg24Gchj9MnUuSrgg0E+xQTAQzxVa1LdjKsCDKV+YAuHTlPvcFmrvn2o7ew==",
+  "buildRun": "https://github.com/convex-in-prod/convex-js/actions/runs/39132497397"
+}
