@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1500" viewBox="0 0 1000 1500">
+<title>Convex TS function compilation into Wasm and runtime architecture</title>
+<desc>TypeScript is analyzed by tsrs and Oxc, bundled by esbuild, deployed to Convex as JavaScript, and additionally compiled by Static Hermes, Emscripten and Wasmtime for native execution.</desc>
+<rect width="1000" height="1500" fill="#f7f9fc"/>
+<text x="50" y="51.2" font-family="DejaVu Sans, sans-serif" font-size="34" font-weight="700" fill="#18283e">Convex TS function compilation into Wasm</text>
+<text x="50" y="94.2" font-family="DejaVu Sans, sans-serif" font-size="34" font-weight="700" fill="#18283e">and runtime architecture</text>
+<rect x="25" y="123" width="950" height="912" rx="18" fill="#f0f4fa" stroke="#d8e1ef" stroke-width="1"/>
+<rect x="25" y="1050" width="950" height="170" rx="18" fill="#f0f6f6" stroke="#d2e4e1" stroke-width="1"/>
+<rect x="25" y="1240" width="950" height="230" rx="18" fill="#eaf4f2" stroke="#bcd9d3" stroke-width="1"/>
+<text x="55" y="157.6" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="700" fill="#365fc1">Build: convex-wasm-compiler</text>
+<text x="345" y="157.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Developer machine / CI</text>
+<text x="55" y="1081.6" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="700" fill="#087e79">Deployment</text>
+<text x="182" y="1081.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">convex-backend · before serving the new Convex app version</text>
+<text x="55" y="1271.6" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="700" fill="#087e79">Serving</text>
+<text x="141" y="1271.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">convex-backend</text>
+<polyline points="55,543 42,543 42,1145 55,1145" fill="none" stroke="#365fc1" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="55,1145 45.990311320975806,1149.3388373911755 45.990311320975806,1140.6611626088245" fill="#365fc1"/>
+<rect x="55" y="192" width="890" height="65" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="75" y="224.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#18283e">Application TypeScript + Convex SDK</text>
+<text x="75" y="247.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Handlers, schema, dependencies and generated API bindings</text>
+<polyline points="220,257 220,288" fill="none" stroke="#7560a6" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="220,288 215.6611626088244,278.9903113209758 224.3388373911756,278.9903113209758" fill="#7560a6"/>
+<polyline points="685,257 685,288" fill="none" stroke="#365fc1" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,288 680.6611626088244,278.9903113209758 689.3388373911756,278.9903113209758" fill="#365fc1"/>
+<rect x="55" y="288" width="330" height="83" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="75" y="319.6" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="700" fill="#18283e">tsrs + Oxc</text>
+<text x="75" y="343.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">tsrs: types and route metadata</text>
+<text x="75" y="364.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Oxc: reuse / control-flow checks</text>
+<rect x="425" y="288" width="520" height="83" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="445" y="320.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#18283e">esbuild</text>
+<text x="445" y="343.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">TypeScript → JavaScript · bundle &amp; split</text>
+<polyline points="220,371 220,402" fill="none" stroke="#7560a6" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polygon points="220,402 215.6611626088244,392.9903113209758 224.3388373911756,392.9903113209758" fill="#7560a6"/>
+<polyline points="685,371 685,402" fill="none" stroke="#365fc1" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,402 680.6611626088244,392.9903113209758 689.3388373911756,392.9903113209758" fill="#365fc1"/>
+<rect x="55" y="402" width="890" height="66" rx="14" fill="#eef3fc" stroke="#cbd7ef" stroke-width="1"/>
+<text x="258.90104166666663" y="430.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#365fc1">JavaScript modules + build metadata</text>
+<text x="271.74479166666663" y="454.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Executable code, dependency graph and analysis results</text>
+<polyline points="220,468 220,503" fill="none" stroke="#365fc1" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="220,503 215.6611626088244,493.9903113209758 224.3388373911756,493.9903113209758" fill="#365fc1"/>
+<polyline points="685,468 685,503" fill="none" stroke="#365fc1" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,503 680.6611626088244,493.9903113209758 689.3388373911756,493.9903113209758" fill="#365fc1"/>
+<rect x="55" y="503" width="330" height="80" rx="14" fill="#eef3fc" stroke="#cbd7ef" stroke-width="1"/>
+<text x="80.5625" y="538.3" font-family="DejaVu Sans, sans-serif" font-size="21" font-weight="700" fill="#365fc1">Convex source package</text>
+<text x="94.6640625" y="561.5" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">JavaScript + schema + metadata</text>
+<rect x="425" y="503" width="520" height="80" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="445" y="535.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#18283e">Static Hermes · shermes</text>
+<text x="445" y="558.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Prepared application JavaScript + bridge → C</text>
+<polyline points="685,583 685,612" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,612 680.6611626088244,602.9903113209758 689.3388373911756,602.9903113209758" fill="#087e79"/>
+<rect x="425" y="612" width="520" height="60" rx="14" fill="#eef3fc" stroke="#cbd7ef" stroke-width="1"/>
+<text x="550.3020833333334" y="648.9" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#087e79">Generated C sources</text>
+<rect x="55" y="612" width="330" height="102" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="75" y="642.8" font-family="DejaVu Sans, sans-serif" font-size="21" font-weight="700" fill="#18283e">Guest runtime libraries</text>
+<text x="75" y="667.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Hermes + Convex C++ adapter</text>
+<text x="75" y="690.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">JavaScript values · Hades GC</text>
+<polyline points="685,672 685,702" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,702 680.6611626088244,692.9903113209758 689.3388373911756,692.9903113209758" fill="#087e79"/>
+<polyline points="385,663 404,663 404,752 425,752" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="425,752 415.9903113209758,756.3388373911756 415.9903113209758,747.6611626088244" fill="#087e79"/>
+<rect x="425" y="702" width="520" height="100" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="445" y="734.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#18283e">Emscripten · emcc</text>
+<text x="445" y="757.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Clang / LLVM · wasm-ld · Binaryen</text>
+<text x="445" y="780.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Compile, link and optimize WebAssembly</text>
+<polyline points="685,802 685,835" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,835 680.6611626088244,825.9903113209758 689.3388373911756,825.9903113209758" fill="#087e79"/>
+<rect x="425" y="835" width="520" height="62" rx="14" fill="#eef3fc" stroke="#cbd7ef" stroke-width="1"/>
+<text x="514.6223958333334" y="861.6" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="700" fill="#087e79">Core WebAssembly · .wasm</text>
+<text x="500.51822916666663" y="885.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Portable module graph + authenticated manifest</text>
+<text x="75" y="787.4" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="700" fill="#364152">FILES SENT TO THE SERVER</text>
+<text x="75" y="818.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">JavaScript and schema</text>
+<text x="75" y="841.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Portable .wasm modules</text>
+<text x="75" y="864.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Native .cwasm artifacts</text>
+<text x="75" y="887.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Source and compatibility metadata</text>
+<polyline points="685,897 685,930" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,930 680.6611626088244,920.9903113209758 689.3388373911756,920.9903113209758" fill="#087e79"/>
+<rect x="425" y="930" width="520" height="90" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="445" y="962.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#18283e">Wasmtime / Cranelift</text>
+<text x="445" y="985.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Compile .wasm → native .cwasm</text>
+<text x="445" y="1008.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Output matched to the server CPU and engine</text>
+<polyline points="685,1020 685,1095" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,1095 680.6611626088244,1085.9903113209757 689.3388373911756,1085.9903113209757" fill="#087e79"/>
+<rect x="55" y="1095" width="890" height="100" rx="14" fill="#ffffff" stroke="#d4dee9" stroke-width="1"/>
+<text x="75" y="1127.4" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#18283e">Convex deployment + Wasmtime loader</text>
+<text x="75" y="1150.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Verify source match and engine compatibility; map .cwasm code into memory</text>
+<text x="75" y="1173.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Initialize reusable guest instances before routing requests to the new version</text>
+<polyline points="685,1195 685,1240" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="685,1240 680.6611626088244,1230.9903113209757 689.3388373911756,1230.9903113209757" fill="#087e79"/>
+<rect x="55" y="1297" width="890" height="151" rx="12" fill="#f9fcfb" stroke="#bcd9d3" stroke-width="1"/>
+<text x="75" y="1330.8" font-family="DejaVu Sans, sans-serif" font-size="21" font-weight="700" fill="#087e79">Tokio runtime</text>
+<text x="260" y="1331.8" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#364152">Async request scheduling and host I/O</text>
+<rect x="75" y="1357" width="345" height="61" rx="10" fill="#ffffff" stroke="#bcd9d3" stroke-width="1"/>
+<text x="129.71614583333331" y="1384.0" font-family="DejaVu Sans, sans-serif" font-size="20" font-weight="700" fill="#18283e">Wasmtime + Hermes</text>
+<text x="135.24479166666669" y="1405.2" font-family="DejaVu Sans, sans-serif" font-size="14" font-weight="400" fill="#364152">One invocation fiber · Hades GC</text>
+<rect x="575" y="1357" width="350" height="61" rx="10" fill="#ffffff" stroke="#bcd9d3" stroke-width="1"/>
+<text x="630.9609375" y="1384.0" font-family="DejaVu Sans, sans-serif" font-size="20" font-weight="700" fill="#18283e">Convex host services</text>
+<text x="636.6067708333334" y="1406.0" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="400" fill="#364152">Database · auth · transactions</text>
+<polyline points="420,1378 575,1378" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="575,1378 565.9903113209758,1382.3388373911755 565.9903113209758,1373.6611626088245" fill="#087e79"/>
+<polyline points="575,1402 420,1402" fill="none" stroke="#087e79" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="420,1402 429.0096886790242,1397.6611626088245 429.0096886790242,1406.3388373911755" fill="#087e79"/>
+<text x="466.8515625" y="1369.4" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="400" fill="#087e79">host calls</text>
+<text x="475.7265625" y="1417.4" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="400" fill="#087e79">results</text>
+<text x="75" y="1438.4" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="400" fill="#364152">Prepared heaps share copy-on-write memory backing; request state stays private to each instance.</text>
+<polyline points="50,1486 85,1486" fill="none" stroke="#52657c" stroke-width="2" stroke-linejoin="round"/>
+<text x="95" y="1489.4" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="400" fill="#364152">Artifacts / runtime values</text>
+<polyline points="410,1486 445,1486" fill="none" stroke="#7560a6" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<text x="455" y="1489.4" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="400" fill="#364152">Analysis metadata</text>
+</svg>

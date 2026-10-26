@@ -9,7 +9,7 @@ function removeDupsAndLowerCase(array: string[]) {
 const titleSchema = z.string().max(60);
 
 const baseSchema = z.object({
-	title: titleSchema,
+	title: z.string(),
 });
 
 const post = defineCollection({
