@@ -1,6 +1,6 @@
 # Convex in Prod
 
-Static technical blog for `https://convex-in-prod.github.io`.
+Static technical blog for `https://convex-in-prod.dev`.
 
 The site uses Astro Cactus on Astro, with full-page light/dark mode, Markdown and MDX posts, Expressive Code syntax highlighting, RSS, sitemap generation, and Pagefind static search.
 
@@ -54,7 +54,7 @@ In repository settings, Pages should use **GitHub Actions** as the source.
 
 This repository owns `public/packages/convex/<source-sha>/convex.tgz` and the
 adjacent provenance manifests. Pages serves them at
-`https://convex-in-prod.github.io/packages/convex/<source-sha>/convex.tgz`.
+`https://convex-in-prod.dev/packages/convex/<source-sha>/convex.tgz`.
 Keep every published directory immutable, including its manifest and archive bytes.
 
 Build new packages from an exact reviewed `convex-in-prod/convex-js` source commit

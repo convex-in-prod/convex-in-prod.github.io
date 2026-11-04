@@ -2,7 +2,7 @@ import type { AstroExpressiveCodeOptions } from "astro-expressive-code";
 import type { SiteConfig } from "@/types";
 
 export const siteConfig: SiteConfig = {
-	url: "https://convex-in-prod.github.io/",
+	url: "https://convex-in-prod.dev/",
 	title: "Convex in Prod",
 	author: "Roman Leventov",
 	description: "Technical notes about running Convex-backed systems in production.",

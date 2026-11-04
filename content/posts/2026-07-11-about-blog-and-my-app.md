@@ -39,7 +39,7 @@ I hope the above gives you a good idea of my application. If your Convex use cas
 
 ## AI Use Disclosure
 
-This blog on [convex-in-prod.github.io](https://convex-in-prod.github.io) is accompanied by code—mostly my forks of official Convex repositories with patches—in [github.com/convex-in-prod](https://github.com/convex-in-prod).
+This blog on [convex-in-prod.dev](/) is accompanied by code—mostly my forks of official Convex repositories with patches—in [github.com/convex-in-prod](https://github.com/convex-in-prod).
 
 In my application development, I'm a relatively early and heavy adopter of LLM/agent coding: I started actively using agentic coding in October 2024 (with Claude Sonnet 3.5 (new), aka Claude Sonnet 3.6). I'm one of those folks who stopped writing any code by hand in December 2025, with the releases of GPT-5.2 and Claude Opus 4.5. Consequently, with the latest models, I barely review any code with my own eyes anymore. However, I heavily review code-agent loops until they cannot find any remaining defects whatsoever, which tends to produce low-bug but higher-[BDUF](https://en.wikipedia.org/wiki/Big_design_up_front) code. I barely remember the specific table and file names in my application.
 
